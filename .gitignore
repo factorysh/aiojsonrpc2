@@ -1,0 +1,6 @@
+aiojsonrpc2.egg-info/
+bin/
+lib/
+pip-selfcheck.json
+pyvenv.cfg
+__pycache__
