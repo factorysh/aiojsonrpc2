@@ -1,21 +1,20 @@
 PYTHON_VERSION=$(shell python3 -V | grep  -o -e "3\.\d*")
 
-lib/python$(PYTHON_VERSION)/site-packages/aiohttp: bin/python
-	./bin/pip install .
+venv/lib/python$(PYTHON_VERSION)/site-packages/aiohttp: venv/bin/python
+	./venv/bin/pip install .
 
-bin/python:
-	python3 -m venv .
-	./bin/pip install --upgrade pip
-	./bin/pip install wheel
+venv/bin/python:
+	python3 -m venv venv
+	./venv/bin/pip install --upgrade pip wheel
 
-bin/pytest: lib/python$(PYTHON_VERSION)/site-packages/aiohttp
-	./bin/pip install .[test]
+venv/bin/pytest: venv/lib/python$(PYTHON_VERSION)/site-packages/aiohttp
+	./venv/bin/pip install .[test]
 
-dev: bin/python
-	./bin/pip install -e .
+dev: venv/bin/python
+	./venv/bin/pip install -e .
 
-test: bin/pytest
-	./bin/pytest tests -v -s
+test: venv/bin/pytest
+	./venv/bin/pytest tests -v -s
 
 clean:
-	rm -rf bin include lib pip-selfcheck.json pyvenv.cfg
+	rm -rf venv pip-selfcheck.json pyvenv.cfg
