@@ -14,6 +14,7 @@ async def jsonrpc_handler(request):
     session = Session(ws, request)
     @session.handler('hello')
     async def hello(name, __context=None):
+        print("ctx", __context)
         return "Hello {}".format(name)
 
     await session.run()
