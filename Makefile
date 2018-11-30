@@ -18,3 +18,13 @@ test: venv/bin/pytest
 
 clean:
 	rm -rf venv pip-selfcheck.json pyvenv.cfg
+
+docker-test:
+	docker run --rm \
+		-u `id -u` \
+		-v ~/.cache:/.cache \
+		-e XDG_CACHE_HOME=/.cache \
+		-v `pwd`:/z \
+		-w /z \
+		-t \
+		python:3.5 make test
