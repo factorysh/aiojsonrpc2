@@ -14,8 +14,6 @@ async def jsonrpc_handler(request):
     session = Session(ws, request)
     @session.handler('hello')
     async def hello(name, __context=None):
-        logging.debug(__context)
-        logging.debug(name)
         return "Hello {}".format(name)
 
     await session.run()
@@ -25,7 +23,6 @@ async def jsonrpc_handler(request):
 async def test_jsonrpc(aiohttp_client, loop):
     app = web.Application()
     app.router.add_get('/', jsonrpc_handler)
-    logging.debug(app)
 
     client = await aiohttp_client(app)
     ws = await client.ws_connect('/')

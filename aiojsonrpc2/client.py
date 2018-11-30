@@ -10,7 +10,6 @@ class Method:
         self.method = method
 
     async def __call__(self, *args, **kwargs):
-        logging.debug(args, kwargs)
         assert len(args) == 0 or len(kwargs) == 0, \
             "You can use positional or named args, not both"
         _id = self.client.id()
