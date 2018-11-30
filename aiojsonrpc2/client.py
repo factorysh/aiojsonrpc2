@@ -9,10 +9,17 @@ class Method:
         self.client = client
         self.method = method
 
-    async def __call__(self, **kwargs):
+    async def __call__(self, *args, **kwargs):
+        logging.debug(args, kwargs)
+        assert len(args) == 0 or len(kwargs) == 0, \
+            "You can use positional or named args, not both"
         _id = self.client.id()
-        req = dict(jsonrpc="2.0", id=_id, method=self.method,
-                   params=kwargs)
+        list(args).pop()
+        if len(args) == 0:
+            params = kwargs
+        else:
+            params = args
+        req = dict(jsonrpc="2.0", id=_id, method=self.method, params=params)
         self.client.responses[_id] = asyncio.Future()
         await self.client.ws.send_json(req)
         resp = await self.client.responses[_id]

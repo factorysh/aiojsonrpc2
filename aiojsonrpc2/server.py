@@ -26,16 +26,25 @@ def jsonrpcrequest(data):
 async def write_error(ws, _id, error):
     e = error._data
     e['id'] = _id
-    ws.send_str(json.dumps(e))
-    ws.close()
+    await ws.send_str(json.dumps(e))
+    await ws.close()
+
+
+class Context:
+    def __init__(self, headers=None):
+        if headers is None:
+            headers = dict()
+        self.headers = headers
 
 
 class Session:
 
-    def __init__(self, ws: WebSocketResponse, request: Request):
+    def __init__(self, ws: WebSocketResponse, context: Context=None):
         self.ids = set()
         self.ws = ws
-        self.request = request
+        if context is None:
+            context = Context()
+        self.context = context
         self.queue = list()
         self.methods = dict()
 
@@ -52,6 +61,12 @@ class Session:
     def __contains__(self, name):
         return name in self.methods
 
+    def handler(self, name: str):
+        def decorator(func):
+            self[name] = func
+            return func
+        return decorator
+
     async def run(self):
         try:
             async for req in self:
@@ -61,7 +76,13 @@ class Session:
                     return
                 f = self[req.method]
                 try:
-                    await f(self.request, self.ws, req)
+                    if isinstance(req.params, list):
+                        r = await f(*req.params, __context=self.context)
+                    else: # It's a dict
+                        req.params['__context'] = self.context
+                        r = await f(**req.params)
+                    await self.ws.send_json(dict(jsonrpc="2.0", id=req._id,
+                                                 result=r))
                 except Exception as e:
                     await write_error(self.ws, req._id,
                                       JSONRPCServerError(message=str(e)))
