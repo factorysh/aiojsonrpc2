@@ -18,4 +18,7 @@ class PascalStringTransport:
 
     async def receive_json(self):
         l = struct.unpack('i', await self.reader.readexactly(4))[0]
-        return json.loads(await self.reader.readexactly(l))
+        blob = await self.reader.readexactly(l)
+        if isinstance(blob, bytes):
+            blob = blob.decode('utf8')
+        return json.loads(blob)
