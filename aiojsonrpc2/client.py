@@ -30,7 +30,7 @@ class Client:
         self._id = 0
         self.responses = dict()
         self.listen = True
-        asyncio.ensure_future(self.listen_responses())
+        self.listen_task = asyncio.ensure_future(self.listen_responses())
 
     async def listen_responses(self):
         while self.listen:
@@ -51,6 +51,7 @@ class Client:
 
     def close(self):
         self.listen = False
+        self.listen_task.cancel()
 
     def id(self):
         self._id += 1
