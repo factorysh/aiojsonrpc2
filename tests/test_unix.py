@@ -24,14 +24,12 @@ async def test_jsonrpc(loop):
     server = await asyncio.start_unix_server(on_client, path=str(path),
                                              loop=loop)
 
-    async with server:
-        assert path.is_socket(), "Path not found"
-        transport = PascalStringTransport(*( await asyncio.\
-                                            open_unix_connection(str(path),
-                                                                 loop=loop)))
-        client = Client(transport)
-        p = client.proxy()
-        r = await p.hello("World")
-        print(r)
-        client.close()
-        server.close()
+    transport = PascalStringTransport(*( await asyncio.\
+                                        open_unix_connection(str(path),
+                                                                loop=loop)))
+    client = Client(transport)
+    p = client.proxy()
+    r = await p.hello("World")
+    print(r)
+    client.close()
+    server.close()
