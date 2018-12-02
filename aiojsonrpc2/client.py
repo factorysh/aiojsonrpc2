@@ -13,11 +13,10 @@ class Method:
         assert len(args) == 0 or len(kwargs) == 0, \
             "You can use positional or named args, not both"
         _id = self.client.id()
-        list(args).pop()
         if len(args) == 0:
             params = kwargs
         else:
-            params = args
+            params = list(args)
         req = dict(jsonrpc="2.0", id=_id, method=self.method, params=params)
         self.client.responses[_id] = asyncio.Future()
         await self.client.ws.send_json(req)
