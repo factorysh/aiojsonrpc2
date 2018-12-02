@@ -12,8 +12,9 @@ class PascalStringTransport:
 
     async def send_json(self, msg):
         blob = json.dumps(msg)
-        await self.writer.write(struct.pack('i', len(blob)))
-        await self.writer.write(blob)
+        self.writer.write(struct.pack('i', len(blob)))
+        self.writer.write(blob.encode('utf8'))
+        await self.writer.drain()
 
     async def receive_json(self):
         l = struct.unpack('i', await self.reader.readexactly(4))[0]
