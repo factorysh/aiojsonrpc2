@@ -17,20 +17,17 @@ async def on_client(reader: asyncio.StreamReader,
     await session.run()
 
 
-async def build_server(path="/tmp/jsonrpc", loop=None):
-    return await asyncio.start_unix_server(on_client, path=path, loop=loop)
-
-
 async def test_jsonrpc(loop):
     path = Path("/tmp/jsonrpc")
     if path.is_file():
         path.unlink()
-    server = await asyncio.start_unix_server(on_client, path=path, loop=loop)
+    server = await asyncio.start_unix_server(on_client, path=str(path),
+                                             loop=loop)
 
     async with server:
         assert path.is_socket(), "Path not found"
         transport = PascalStringTransport(*( await asyncio.\
-                                            open_unix_connection(path,
+                                            open_unix_connection(str(path),
                                                                  loop=loop)))
         client = Client(transport)
         p = client.proxy()
