@@ -62,6 +62,7 @@ class Session:
         return name in self.methods
 
     def handler(self, name: str):
+        assert isinstance(name, str)
         def decorator(func):
             self[name] = func
             return func
@@ -71,6 +72,7 @@ class Session:
         try:
             async for req in self:
                 if req.method not in self:
+                    logging.error("Unknown method: %s" % req.method)
                     await write_error(self.ws, req._id,
                                       JSONRPCMethodNotFound())
                     return
