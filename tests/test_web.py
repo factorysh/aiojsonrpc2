@@ -1,4 +1,6 @@
 import logging
+import asyncio
+
 from aiohttp import web
 
 from aiojsonrpc2.server import Session
@@ -15,9 +17,12 @@ async def jsonrpc_handler(request):
     @session.handler('hello')
     async def hello(name, __context=None):
         print("ctx", __context)
+        asyncio.sleep(2)
         return "Hello {}".format(name)
 
-    await session.run()
+    session_task = asyncio.ensure_future(session.run())
+
+    asyncio.gather(session_task)
     return ws
 
 
@@ -29,6 +34,9 @@ async def test_jsonrpc(aiohttp_client, loop):
     ws = await client.ws_connect('/')
 
     c = Client(ws)
+    @c.handler('evt')
+    async def evt(msg):
+        print("evt:", evt)
     proxy = c.proxy()
     print(proxy)
     r = await proxy.hello('world')
