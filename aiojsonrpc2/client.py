@@ -31,6 +31,7 @@ class Client:
         self.responses = dict()
         self.listen = True
         self.listen_task = asyncio.ensure_future(self.listen_responses())
+        self.handlers = dict()
 
     async def listen_responses(self):
         while self.listen:
@@ -48,10 +49,28 @@ class Client:
                 assert resp['jsonrpc'] == "2.0"
                 if 'id' in resp:
                     self.responses[resp['id']].set_result(resp['result'])
+                else: # it's an event
+                    m = resp['method']
+                    if m in self.handlers:
+                        params = resp['params']
+                        if isinstance(params, list):
+                            await self.handlers[m](*params)
+                        else: # it's a dict
+                            await self.handlers[m](**params)
+                    else:
+                        logging.info("Unknown event: %s" % m)
 
     def close(self):
         self.listen = False
         self.listen_task.cancel()
+
+    def handler(self, name: str):
+        assert isinstance(name, str)
+        def decorator(func):
+            assert asyncio.iscoroutinefunction(func)
+            self.handlers[name] = func
+            return func
+        return decorator
 
     def id(self):
         self._id += 1
