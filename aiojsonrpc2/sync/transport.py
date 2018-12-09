@@ -14,6 +14,8 @@ class SyncPascalStringTransport:
         self.send_raw(blob)
 
     def send_raw(self, blob):
+        if isinstance(blob, str):
+            blob = blob.encode('utf8')
         self.sock.sendall(struct.pack('i', len(blob)))
         self.sock.sendall(blob)
 
