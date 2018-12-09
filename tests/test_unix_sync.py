@@ -5,7 +5,7 @@ from multiprocessing import Process
 from pathlib import Path
 
 from jsonrpc import JSONRPCResponseManager, dispatcher
-from jsonrpc.jsonrpc2 import JSONRPC20Request
+from jsonrpc.jsonrpc2 import JSONRPC20Request, JSONRPC20BatchResponse
 
 from aiojsonrpc2.sync.transport import SyncPascalStringTransport
 from aiojsonrpc2.sync.client import SyncUnixClient
@@ -23,10 +23,10 @@ def server(path: str):
         connection, client_address = server.accept()
         tr = SyncPascalStringTransport(connection)
         command = JSONRPC20Request.from_data(tr.receive_json())
-        print("command", command.data)
+        print("command", command)
         response = JSONRPCResponseManager.handle_request(command, dispatcher)
         print('server response', response.data)
-        tr.send_json(response.data)
+        tr.send_raw(response.json)
         connection.close()
 
 
@@ -37,7 +37,25 @@ def test_unix_sync():
     time.sleep(1)
     client = SyncUnixClient(path)
     resp = client.proxy.hello("World")
-    print('client response', resp.data)
     assert resp._id == 0
     assert resp.result == "Hello World"
+    p.kill()
+
+
+def test_unix_batch():
+    path = "/tmp/sync_server.socket"
+    p = Process(target=server, args=(path, ) )
+    p.start()
+    time.sleep(1)
+    client = SyncUnixClient(path)
+    batch = client.batch()
+    id_a = batch.hello("Alice")
+    id_b = batch.hello("Bob")
+    assert 0 == id_a
+    assert 1 == id_b
+    resp = batch()
+    assert isinstance(resp, JSONRPC20BatchResponse)
+    rr = dict((r._id, r) for r in resp)
+    assert rr[0].result == "Hello Alice"
+    assert rr[1].result == "Hello Bob"
     p.kill()

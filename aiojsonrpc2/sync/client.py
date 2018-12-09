@@ -46,6 +46,9 @@ class SyncUnixClient:
     def proxy(self):
         return Proxy(self)
 
+    def batch(self):
+        return Batch(self)
+
 
 class Proxy:
     def __init__(self, client: SyncUnixClient):
@@ -55,7 +58,47 @@ class Proxy:
         return Method(self.client, method)
 
 
+class LaterMethod:
+    def __init__(self, batch, method):
+        self.batch = batch
+        self.method = method
+
+    def __call__(self, *args, **kwargs):
+        assert len(args) == 0 or len(kwargs) == 0, \
+            "You can use positional or named args, not both"
+        if len(args) == 0:
+            params = kwargs
+        else:
+            params = list(args)
+        _id = self.batch._client.id()
+        req = JSONRPC20Request(_id=_id,
+                               method=self.method,
+                               params=params)
+        self.batch._batch.append(req)
+        return _id
+
+
 def patch_id(r):
     r['_id'] = r['id']
     del r['id']
     return r
+
+
+class Batch:
+    _client = None
+    _batch = []
+
+    def __init__(self, client: SyncUnixClient):
+        self._client = client
+
+    def __getattr__(self, method: str) -> LaterMethod:
+        return LaterMethod(self, method)
+
+    def __call__(self):
+        batch = JSONRPC20BatchRequest(*self._batch)
+        self._client.tr.send_raw(batch.json)
+        resp = self._client.tr.receive_json()
+        if isinstance(resp, list):
+            return JSONRPC20BatchResponse(*[JSONRPC20Response(**patch_id(r))
+                                            for r in resp])
+        return JSONRPC20Response(**resp)
