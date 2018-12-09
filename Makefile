@@ -11,7 +11,7 @@ venv/bin/pytest: venv/lib/python$(PYTHON_VERSION)/site-packages/aiohttp
 	./venv/bin/pip install .[test]
 
 dev: venv/bin/python
-	./venv/bin/pip install -e .
+	./venv/bin/pip install -e .[test]
 
 test: venv/bin/pytest
 	./venv/bin/pytest tests -v -s
