@@ -3,32 +3,25 @@ from pathlib import Path
 from random import random
 
 from aiojsonrpc2.transport import PascalStringTransport
-from aiojsonrpc2.server import Session
+from aiojsonrpc2.server import UnixServer
 from aiojsonrpc2.client import UnixClient
 
 
-async def on_client(reader: asyncio.StreamReader,
-                    writer: asyncio.StreamWriter):
-    transport = PascalStringTransport(reader, writer)
-    session = Session(transport)
-    @session.handler("hello")
-    async def hello(name, __context=None):
-        await asyncio.sleep(random())
-        return "Hello %s" % name
-
-    await session.run()
+async def hello(name, __context=None):
+    await asyncio.sleep(random())
+    return "Hello %s" % name
 
 
 async def test_jsonrpc(loop):
     path = Path("/tmp/jsonrpc")
     if path.is_file():
         path.unlink()
-    server = await asyncio.start_unix_server(on_client, path=str(path),
-                                             loop=loop)
+
+    server = await UnixServer(path, loop=loop, hello=hello)
+    print("server", server)
     assert path.exists()
     client = await UnixClient(path, loop)
     r = await client.stub.hello("World")
-    print(r)
     # batch
 
     r_a = asyncio.ensure_future(client.stub.hello("Alice"))

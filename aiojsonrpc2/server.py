@@ -13,6 +13,7 @@ from jsonrpc.exceptions import (
     JSONRPCDispatchException,
 )
 from aiohttp.web import WebSocketResponse, Request
+from aiojsonrpc2.transport import PascalStringTransport
 
 
 def jsonrpcrequest(data):
@@ -118,3 +119,22 @@ class Session:
             raise Exception("Replayed id")
         self.ids.add(_id)
         return req
+
+
+def on_unix_client(**handlers):
+    async def on_client(reader: asyncio.StreamReader,
+                        writer: asyncio.StreamWriter):
+        transport = PascalStringTransport(reader, writer)
+        session = Session(transport)
+        for method, func in handlers.items():
+            session[method] = func
+        await session.run()
+    return on_client
+
+
+async def UnixServer(path, loop=None, **handlers):
+    server = await asyncio.start_unix_server(on_unix_client(**handlers),
+                                             path=str(path),
+                                             loop=loop)
+    print("server started:", path)
+    return server
