@@ -27,5 +27,15 @@ async def test_jsonrpc(loop):
     client = await UnixClient(path, loop)
     r = await client.stub.hello("World")
     print(r)
+    # batch
+
+    r_a = asyncio.ensure_future(client.stub.hello("Alice"))
+    r_b = asyncio.ensure_future(client.stub.hello("Bob"))
+
+    await asyncio.gather(r_a, r_b)
+
+    assert r_a.result() == "Hello Alice"
+    assert r_b.result() == "Hello Bob"
+
     client.close()
     server.close()
