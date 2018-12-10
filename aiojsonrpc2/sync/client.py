@@ -1,5 +1,6 @@
 from pathlib import Path
 import socket
+from operator import attrgetter
 
 from aiojsonrpc2.sync.transport import SyncPascalStringTransport
 
@@ -97,5 +98,7 @@ class Batch:
         self._client.tr.send_raw(batch.json)
         resp = self._client.tr.receive_json()
         if isinstance(resp, list):
-            return JSONRPC20BatchResponse(*[_response(r) for r in resp])
+            rr = [_response(r) for r in resp]
+            sorted(rr, key=attrgetter('_id'))
+            return JSONRPC20BatchResponse(*rr)
         return _response(resp)

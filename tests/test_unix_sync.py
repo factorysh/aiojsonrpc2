@@ -55,7 +55,7 @@ def test_unix_batch():
     assert 1 == id_b
     resp = batch()
     assert isinstance(resp, JSONRPC20BatchResponse)
-    rr = dict((r._id, r) for r in resp)
-    assert rr[0].result == "Hello Alice"
-    assert rr[1].result == "Hello Bob"
+    r_a, r_b = resp.responses
+    assert r_a.result == "Hello Alice"
+    assert r_b.result == "Hello Bob"
     p.kill()

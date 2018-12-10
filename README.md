@@ -45,6 +45,7 @@ batch = client.batch()
 id_a = batch.hello("Alice")
 id_b = batch.hello("Bob")
 resp = batch()
+resp_a, resp_b = resp.responses # responses are sorted
 ```
 
 Licence
