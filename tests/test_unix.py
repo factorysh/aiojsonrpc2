@@ -3,7 +3,7 @@ from pathlib import Path
 
 from aiojsonrpc2.transport import PascalStringTransport
 from aiojsonrpc2.server import Session
-from aiojsonrpc2.client import Client
+from aiojsonrpc2.client import UnixClient
 
 
 async def on_client(reader: asyncio.StreamReader,
@@ -23,13 +23,9 @@ async def test_jsonrpc(loop):
         path.unlink()
     server = await asyncio.start_unix_server(on_client, path=str(path),
                                              loop=loop)
-
-    transport = PascalStringTransport(*( await asyncio.\
-                                        open_unix_connection(str(path),
-                                                                loop=loop)))
-    client = Client(transport)
-    p = client.proxy()
-    r = await p.hello("World")
+    assert path.exists()
+    client = await UnixClient(path, loop)
+    r = await client.stub.hello("World")
     print(r)
     client.close()
     server.close()

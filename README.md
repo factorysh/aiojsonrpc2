@@ -11,6 +11,19 @@ Test it
     make test
 
 
+Async client
+------------
+
+```python
+from aiojsonrpc2.client import UnixClient
+
+path = '/tmp/jsonrpc.socket'
+
+# you are somewhere in an await function, with a loop
+client = await UnixClient(path)
+resp = await client.stub.hello("World")
+```
+
 Sync client
 -----------
 
