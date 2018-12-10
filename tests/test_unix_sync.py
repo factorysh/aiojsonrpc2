@@ -36,7 +36,7 @@ def test_unix_sync():
     p.start()
     time.sleep(1)
     client = SyncUnixClient(path)
-    resp = client.proxy.hello("World")
+    resp = client.stub.hello("World")
     assert resp._id == 0
     assert resp.result == "Hello World"
     p.kill()

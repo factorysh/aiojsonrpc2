@@ -26,7 +26,7 @@ from aiojsonrpc2.sync.client import SyncUnixClient
 
 path = '/tmp/jsonrpc.socket'
 client = SyncUnixClient(path)
-resp = client.proxy.hello("World") # hello method, with ["World"] arguments
+resp = client.stub.hello("World") # hello method, with ["World"] arguments
 ```
 
 ### Batch

@@ -42,14 +42,14 @@ class SyncUnixClient:
         return self._id
 
     @property
-    def proxy(self):
-        return Proxy(self)
+    def stub(self):
+        return Stub(self)
 
     def batch(self):
         return Batch(self)
 
 
-class Proxy:
+class Stub:
     def __init__(self, client: SyncUnixClient):
         self.client = client
 
