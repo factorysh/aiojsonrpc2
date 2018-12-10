@@ -34,12 +34,7 @@ async def test_jsonrpc(aiohttp_client, loop):
     ws = await client.ws_connect('/')
 
     c = Client(ws)
-    @c.handler('evt')
-    async def evt(msg):
-        print("evt:", evt)
-    proxy = c.proxy()
-    print(proxy)
-    r = await proxy.hello('world')
+    r = await c.stub.hello('world')
     logging.debug('response %s', r)
     assert r == "Hello world"
     c.close()

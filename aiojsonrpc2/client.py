@@ -76,11 +76,12 @@ class Client:
         self._id += 1
         return self._id
 
-    def proxy(self):
-        return Proxy(self)
+    @property
+    def stub(self):
+        return Stub(self)
 
 
-class Proxy:
+class Stub:
     def __init__(self, client: Client):
         self.client = client
 
