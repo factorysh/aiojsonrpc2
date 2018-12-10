@@ -21,6 +21,10 @@ For nia nia nia compatibility, with flask or wathever, a sync client is provided
 Proxy object wrap the distant API.
 
 ```python
+from aiojsonrpc2.sync.client import SyncUnixClient
+
+
+path = '/tmp/jsonrpc.socket'
 client = SyncUnixClient(path)
 resp = client.proxy.hello("World") # hello method, with ["World"] arguments
 ```
@@ -33,6 +37,9 @@ The responses can be unsorted, but each response has its own id.
 Batch object can be used like the Proxy object.
 
 ```python
+from aiojsonrpc2.sync.client import SyncUnixClient
+
+path = '/tmp/jsonrpc.socket'
 client = SyncUnixClient(path)
 batch = client.batch()
 id_a = batch.hello("Alice")
