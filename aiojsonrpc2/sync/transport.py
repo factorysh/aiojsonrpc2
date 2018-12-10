@@ -19,10 +19,12 @@ class SyncPascalStringTransport:
         self.sock.sendall(struct.pack('i', len(blob)))
         self.sock.sendall(blob)
 
-    def receive_json(self):
+    def receive_raw(self) -> str:
         l = struct.unpack('i', readexactly(self.sock, 4))[0]
-        blob = readexactly(self.sock, l).decode('utf8')
-        return json.loads(blob)
+        return readexactly(self.sock, l).decode('utf8')
+
+    def receive_json(self):
+        return json.loads(self.receive_raw())
 
 
 def readexactly(sock: socket.socket, size: int) -> bytes:

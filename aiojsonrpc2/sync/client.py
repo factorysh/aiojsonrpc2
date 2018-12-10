@@ -25,8 +25,7 @@ class Method:
                                method=self.method, params=params)
         self.client.responses[_id] = None
         self.client.tr.send_raw(req.json)
-        resp = self.client.tr.receive_json()
-        return JSONRPC20Response(**patch_id(resp))
+        return _response(self.client.tr.receive_json())
 
 
 class SyncUnixClient:
@@ -78,10 +77,9 @@ class LaterMethod:
         return _id
 
 
-def patch_id(r):
-    r['_id'] = r['id']
-    del r['id']
-    return r
+def _response(raw):
+    raw['_id'] = raw['id']
+    return JSONRPC20Response(**raw)
 
 
 class Batch:
@@ -99,6 +97,5 @@ class Batch:
         self._client.tr.send_raw(batch.json)
         resp = self._client.tr.receive_json()
         if isinstance(resp, list):
-            return JSONRPC20BatchResponse(*[JSONRPC20Response(**patch_id(r))
-                                            for r in resp])
-        return JSONRPC20Response(**resp)
+            return JSONRPC20BatchResponse(*[_response(r) for r in resp])
+        return _response(resp)
