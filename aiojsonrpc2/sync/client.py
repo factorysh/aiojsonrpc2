@@ -63,7 +63,7 @@ class LaterMethod:
         self.batch = batch
         self.method = method
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> int:
         assert len(args) == 0 or len(kwargs) == 0, \
             "You can use positional or named args, not both"
         if len(args) == 0:

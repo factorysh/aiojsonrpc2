@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from random import random
 
 from aiojsonrpc2.transport import PascalStringTransport
 from aiojsonrpc2.server import Session
@@ -12,6 +13,7 @@ async def on_client(reader: asyncio.StreamReader,
     session = Session(transport)
     @session.handler("hello")
     async def hello(name, __context=None):
+        await asyncio.sleep(random())
         return "Hello %s" % name
 
     await session.run()
