@@ -6,7 +6,6 @@ Handling slow RPC, with an event flow, or in fire and forget
  * Call for more batch events, starting at latest known events
 
 """
-import uuid
 from typing import Any
 from asyncio import Queue, get_running_loop
 import uuid
@@ -17,7 +16,7 @@ class Run:
         self.messages = []
         self.queue = Queue()
 
-    def append(self, message: Any=None) -> int:
+    def append(self, message: Any = None) -> int:
         self.messages.append(message)
         self.queue.put_nowait(None)
         return len(self.messages)
@@ -26,11 +25,12 @@ class Run:
         while self.queue.qsize() > 0:
             await self.queue.get()
 
-    async def get(self, latest: int=0) -> list:
+    async def get(self, latest: int = 0) -> list:
         await self.queue.get()
         await self.purge()
         if len(self.messages) > latest:
-            return [[i+latest, v] for i, v in enumerate(self.messages[latest:])]
+            return [[i+latest, v] for i, v in
+                    enumerate(self.messages[latest:])]
         return []
 
 
@@ -45,7 +45,7 @@ class Longrun:
         self.runs = dict()
 
     # expose this method
-    async def next(self, rid: str="", latest: int=0) -> list:
+    async def next(self, rid: str = "", latest: int = 0) -> list:
         assert rid != "", "rid can't be null"
         return await self.runs[rid].get(latest)
 
