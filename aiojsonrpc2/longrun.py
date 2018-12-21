@@ -1,6 +1,6 @@
 import uuid
 from typing import Any
-from asyncio import Future, Queue
+from asyncio import Queue, get_running_loop
 import uuid
 
 
@@ -28,7 +28,10 @@ class Run:
 
 class Longrun:
     def __init__(self, loop=None, maxsize=0, maxage=300):
-        self.loop = loop
+        if loop is None:
+            self.loop = get_running_loop()
+        else:
+            self.loop = loop
         self.maxsize = maxsize
         self.maxage = maxage
         self.runs = dict()
@@ -44,7 +47,7 @@ class Longrun:
         self.loop.call_later(self.maxage, self.lazy_close, rid)
         return rid
 
-    def add(self, rid: str="", message: Any= None) -> int:
+    def add(self, rid: str, message: Any) -> int:
         assert rid != "", "rid can't be null"
         return self.runs[rid].append(message)
 
