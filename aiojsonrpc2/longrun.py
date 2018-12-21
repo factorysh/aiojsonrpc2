@@ -27,25 +27,31 @@ class Run:
 
 
 class Longrun:
-    def __init__(self, loop=None, maxsize=0):
+    def __init__(self, loop=None, maxsize=0, maxage=300):
         self.loop = loop
         self.maxsize = maxsize
-        self.runs = dict() # FIXME clean it later
+        self.maxage = maxage
+        self.runs = dict()
 
     # expose this method
     async def next(self, rid: str="", latest: int=0) -> list:
         assert rid != "", "rid can't be null"
         return await self.runs[rid].get(latest)
 
-    def new(self) -> str:
+    async def new(self) -> str:
         rid = str(uuid.uuid4())
         self.runs[rid] = Run()
+        self.loop.call_later(self.maxage, self.lazy_close, rid)
         return rid
 
     def add(self, rid: str="", message: Any= None) -> int:
         assert rid != "", "rid can't be null"
         return self.runs[rid].append(message)
 
-    def close(self, rid: str=""):
+    def lazy_close(self, rid):
+        if rid in self.runs:
+            self.close(rid)
+
+    def close(self, rid: str):
         assert rid != "", "rid can't be null"
         del self.runs[rid]
