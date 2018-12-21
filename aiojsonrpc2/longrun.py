@@ -49,10 +49,10 @@ class Longrun:
         assert rid != "", "rid can't be null"
         return await self.runs[rid].get(latest)
 
-    async def new(self) -> str:
+    def new(self) -> str:
         rid = str(uuid.uuid4())
         self.runs[rid] = Run()
-        self.loop.call_later(self.maxage, self.lazy_close, rid)
+        self.runs[rid].timeout = self.loop.call_later(self.maxage, self.lazy_close, rid)
         return rid
 
     def add(self, rid: str, message: Any) -> int:
@@ -65,4 +65,5 @@ class Longrun:
 
     def close(self, rid: str):
         assert rid != "", "rid can't be null"
+        self.runs[rid].timeout.cancel()
         del self.runs[rid]

@@ -5,7 +5,7 @@ from asyncio import ensure_future
 async def test_longrun(loop):
     l = Longrun(loop)
 
-    chan = await l.new()
+    chan = l.new()
     f1 = ensure_future(l.next(chan))
 
     n = l.add(chan, 42)
