@@ -1,3 +1,11 @@
+"""
+Handling slow RPC, with an event flow, or in fire and forget
+
+ * Call a RPC, get an id.
+ * Call for next batch events, with theirs positions.
+ * Call for more batch events, starting at latest known events
+
+"""
 import uuid
 from typing import Any
 from asyncio import Queue, get_running_loop
