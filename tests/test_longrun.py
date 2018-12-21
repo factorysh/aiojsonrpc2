@@ -16,4 +16,5 @@ async def test_longrun(loop):
     v1 = await f1
     print("v1", v1)
     assert len(v1) == 2
+    l.close(chan)
 
