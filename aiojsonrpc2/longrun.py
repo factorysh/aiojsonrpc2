@@ -7,9 +7,12 @@ Handling slow RPC, with an event flow, or in fire and forget
 
 """
 from typing import Any
-from asyncio import Queue, get_running_loop
+from asyncio import get_running_loop
 import uuid
 from enum import Enum
+
+from aiojsonrpc2.waiter import Waiter
+
 
 States = Enum('States', 'queued running canceled error success')
 
@@ -17,20 +20,15 @@ States = Enum('States', 'queued running canceled error success')
 class Run:
     def __init__(self):
         self.messages = []
-        self.queue = Queue()
+        self.waiter = Waiter()
 
     def append(self, message: Any = None) -> int:
         self.messages.append(message)
-        self.queue.put_nowait(None)
+        self.waiter.done()
         return len(self.messages)
 
-    async def purge(self):
-        while self.queue.qsize() > 0:
-            await self.queue.get()
-
     async def get(self, latest: int = 0) -> list:
-        await self.queue.get()
-        await self.purge()
+        await self.waiter.wait()
         if len(self.messages) > latest:
             return [dict(id=i+latest, value=v, state=States.running.name) for
                          i, v in enumerate(self.messages[latest:])]
