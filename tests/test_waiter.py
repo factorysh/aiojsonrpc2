@@ -1,8 +1,8 @@
-from aiojsonrpc2.waiter import MultiWaiter
+from aiojsonrpc2.waiter import MultiWaiter, Waiter
 from asyncio import ensure_future
 
 
-async def test_waiter(loop):
+async def test_multiwaiter(loop):
     c = MultiWaiter()
     async def starve(c, size):
         n = 0
@@ -15,3 +15,11 @@ async def test_waiter(loop):
     c.done()
     await t
 
+
+async def test_waiter(loop):
+    w = Waiter()
+    async def starve(w):
+        await w.wait()
+    t = ensure_future(starve(w))
+    w.done()
+    await t
