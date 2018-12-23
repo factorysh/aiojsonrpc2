@@ -9,6 +9,9 @@ Handling slow RPC, with an event flow, or in fire and forget
 from typing import Any
 from asyncio import Queue, get_running_loop
 import uuid
+from enum import Enum
+
+States = Enum('States', 'queued running canceled error success')
 
 
 class Run:
@@ -29,8 +32,8 @@ class Run:
         await self.queue.get()
         await self.purge()
         if len(self.messages) > latest:
-            return [[i+latest, v] for i, v in
-                    enumerate(self.messages[latest:])]
+            return [dict(id=i+latest, value=v, state=States.running.name) for
+                         i, v in enumerate(self.messages[latest:])]
         return []
 
 
