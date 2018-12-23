@@ -1,4 +1,4 @@
-from aiojsonrpc2.pubsub import MultiWaiter
+from aiojsonrpc2.waiter import MultiWaiter
 from asyncio import ensure_future
 
 
