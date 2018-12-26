@@ -3,6 +3,7 @@ import socket
 import time
 from multiprocessing import Process
 from pathlib import Path
+import asyncio
 
 from jsonrpc import JSONRPCResponseManager, dispatcher
 from jsonrpc.jsonrpc2 import JSONRPC20Request, JSONRPC20BatchResponse
@@ -15,6 +16,7 @@ def server(path: str):
     if os.path.exists(path):
         os.remove(path)
     print("Listening %s" % path)
+    loop = asyncio.get_event_loop()
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(path)
     dispatcher["hello"] = lambda hello: "Hello %s" % hello
