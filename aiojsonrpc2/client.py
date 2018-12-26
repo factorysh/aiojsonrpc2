@@ -3,8 +3,6 @@ import asyncio
 
 from aiohttp import web
 
-from aiojsonrpc2.transport import PascalStringTransport
-
 
 class Method:
     def __init__(self, client, method):
@@ -90,8 +88,3 @@ class Stub:
     def __getattr__(self, method) -> Method:
         return Method(self.client, method)
 
-
-async def UnixClient(path, loop=None) -> Client:
-    return Client(PascalStringTransport(
-        *(await asyncio.open_unix_connection(str(path), loop=loop)))
-                  )
