@@ -45,8 +45,20 @@ class Session:
         if context is None:
             context = Context()
         self.context = context
-        self.queue = list()
+        self.queue = asyncio.Queue()
         self.methods = dict()
+        self.reading_task = None
+        self.reading = True
+
+    def close(self):
+        self.reading = False
+        self.ws.close()
+        if self.reading_task is not None:
+            self.reading_task.cancel()
+
+    def register(self, **methods):
+        for name, method in methods.items():
+            self[name] = method
 
     def __setitem__(self, name, function):
         assert asyncio.iscoroutinefunction(function)
@@ -96,25 +108,19 @@ class Session:
     def __aiter__(self):
         return self
 
-    async def __anext__(self) -> JSONRPC20Request:
-        while len(self.queue) == 0:
-            msg = None
+    async def requests(self):
+        while self.reading:
             try:
-                msg = await self.ws.receive_json()
-            except TypeError as e:
-                logging.debug(e)
-                continue
-            except RuntimeError as e:
-                if e.args[0] == 'WebSocket connection is closed.':
-                    raise StopAsyncIteration
-                raise e
-            finally:
-                if msg is not None:
-                    logging.debug(msg)
-                    self.queue = list(jsonrpcrequest(msg))
-        req = self.queue.pop()
-        _id = req._id
-        if _id in self.ids:
-            raise Exception("Replayed id: %s" % _id)
-        self.ids.add(_id)
-        return req
+                reqs = await self.ws.receive_json()
+            except RuntimeError: # transport is closed
+                return
+            for req in list(jsonrpcrequest(reqs)):
+                assert req._id not in self.ids, "Replayed id: %s" % req._id
+                self.ids.add(req._id)
+                await self.queue.put(req)
+
+    def read_all_the_things(self):
+        self.reading_task = asyncio.ensure_future(self.requests())
+
+    async def __anext__(self) -> JSONRPC20Request:
+        return await self.queue.get()
