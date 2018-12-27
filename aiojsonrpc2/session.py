@@ -13,7 +13,7 @@ from jsonrpc.exceptions import (
     JSONRPCServerError,
     JSONRPCDispatchException,
 )
-from aiohttp.web import WebSocketResponse, Request
+from aiojsonrpc2.transport import AbstractTransport
 
 
 def jsonrpcrequest(data):
@@ -44,9 +44,9 @@ async def async_response(r, writer, _id):
 
 class Session:
 
-    def __init__(self, methods: dict, ws: WebSocketResponse, context: Context=None):
+    def __init__(self, methods: dict, transport: AbstractTransport, context: Context=None):
         self.ids = set()
-        self.ws = ws
+        self.transport = transport
         if context is None:
             context = Context()
         self.context = context
@@ -65,7 +65,7 @@ class Session:
             req = await self.queue_req.get()
             if req.method not in self.methods:
                 logging.error("Unknown method: %s" % req.method)
-                await write_error(self.ws, req._id,
+                await write_error(self.transport, req._id,
                                     JSONRPCMethodNotFound())
                 return
             f = self.methods[req.method]
@@ -83,7 +83,7 @@ class Session:
                     #del self.tasks[req._id]
                 #t.add_done_callback(clean_task)
             except Exception as e:
-                await write_error(self.ws, req._id,
+                await write_error(self.transport, req._id,
                                     JSONRPCServerError(message=str(e)))
                 return
 
@@ -96,7 +96,7 @@ class Session:
         asyncio.gather(*self.tasks.values())
 
     def close(self):
-        self.ws.close()
+        self.transport.close()
         self.task_mainloop.cancel()
         self.reading = False
         self.reading_task.set_result(None)
@@ -106,7 +106,7 @@ class Session:
     async def requests(self):
         while self.reading:
             try:
-                reqs = await self.ws.receive_json()
+                reqs = await self.transport.receive_json()
             except RuntimeError: # transport is closed
                 return
             for req in list(jsonrpcrequest(reqs)):
@@ -120,5 +120,5 @@ class Session:
                 r = await self.queue_resp.get()
             except RuntimeError:
                 return
-            await self.ws.send_json(r)
+            await self.transport.send_json(r)
 
