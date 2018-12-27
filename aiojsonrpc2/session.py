@@ -61,7 +61,10 @@ class Session:
         self.task_requests = asyncio.ensure_future(self.requests())
         self.task_responses = asyncio.ensure_future(self.responses())
         while self.reading:
-            req = await self.queue_req.get()
+            try:
+                req = await self.queue_req.get()
+            except RuntimeError:
+                return
             if req.method not in self.methods:
                 logging.error("Unknown method: %s" % req.method)
                 await write_error(self.transport, req._id,
