@@ -1,7 +1,7 @@
 import logging
 import asyncio
 
-from aiohttp import web
+from aiojsonrpc2.transport import AbstractTransport
 
 
 class Method:
@@ -19,14 +19,14 @@ class Method:
             params = list(args)
         req = dict(jsonrpc="2.0", id=_id, method=self.method, params=params)
         self.client.responses[_id] = asyncio.Future()
-        await self.client.ws.send_json(req)
+        await self.client.transport.send_json(req)
         resp = await self.client.responses[_id]
         return resp
 
 
 class Client:
-    def __init__(self, ws: web.WebSocketResponse):
-        self.ws = ws
+    def __init__(self, transport: AbstractTransport):
+        self.transport = transport
         self._id = 0
         self.responses = dict()
         self.listen = True
@@ -36,7 +36,7 @@ class Client:
     async def listen_responses(self):
         while self.listen:
             try:
-                resp = await self.ws.receive_json()
+                resp = await self.transport.receive_json()
             except TypeError as e:
                 continue
             except RuntimeError as e:
