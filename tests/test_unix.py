@@ -2,9 +2,8 @@ import asyncio
 from pathlib import Path
 from random import random
 
-from aiojsonrpc2.transport import PascalStringTransport
-from aiojsonrpc2.server import UnixServer
-from aiojsonrpc2.client import UnixClient
+from aiojsonrpc2.transport.unix_socket import PascalStringTransport, \
+    UnixServer, UnixClient
 
 
 async def hello(name, __context=None):
@@ -29,6 +28,7 @@ async def test_jsonrpc(loop):
 
     await asyncio.gather(r_a, r_b)
 
+    print(r_a, r_b)
     assert r_a.result() == "Hello Alice"
     assert r_b.result() == "Hello Bob"
 
