@@ -56,7 +56,6 @@ class Session:
         self.reading_task = asyncio.Future()
         self.reading = True
         self.tasks = dict()
-        self.task_mainloop = asyncio.ensure_future(self.run())
 
     async def run(self):
         self.task_requests = asyncio.ensure_future(self.requests())
@@ -97,7 +96,6 @@ class Session:
 
     def close(self):
         self.transport.close()
-        self.task_mainloop.cancel()
         self.reading = False
         self.reading_task.set_result(None)
         self.task_requests.cancel()

@@ -32,6 +32,7 @@ async def test_sesison(loop):
     loop.set_debug(True)
     t = TransportMockup()
     s = Session(dict(hello=hello), t)
+    task = ensure_future(s.run())
 
     await t.r.put(dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]))
     r = await t.w.get()
@@ -40,5 +41,6 @@ async def test_sesison(loop):
     assert r._id == 0
     print("closing")
     await s.join()
+    task.cancel()
     s.close()
 
