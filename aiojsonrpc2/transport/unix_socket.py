@@ -3,14 +3,11 @@ import asyncio
 import json
 
 from aiojsonrpc2.session import Session
+from aiojsonrpc2.client import Client
+from aiojsonrpc2.transport import AbstractTransport
 
 
-class PascalStringTransport:
-
-    def __init__(self, reader: asyncio.StreamReader,
-                 writer: asyncio.StreamWriter):
-        self.reader = reader
-        self.writer = writer
+class PascalStringTransport(AbstractTransport):
 
     async def send_json(self, msg):
         blob = json.dumps(msg).encode('utf8')
