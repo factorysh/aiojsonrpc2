@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import json
+import functools
 
-from jsonrpc.jsonrpc2 import JSONRPC20Request
+from jsonrpc.jsonrpc2 import JSONRPC20Request, JSONRPC20Response
 from jsonrpc.exceptions import (
     JSONRPCInvalidParams,
     JSONRPCInvalidRequest,
@@ -37,76 +38,70 @@ class Context:
         self.headers = headers
 
 
+async def async_response(r, writer, _id):
+    await writer.send_json(dict(jsonrpc="2.0", id=_id, result=await r))
+
+
 class Session:
 
-    def __init__(self, ws: WebSocketResponse, context: Context=None):
+    def __init__(self, methods: dict, ws: WebSocketResponse, context: Context=None):
         self.ids = set()
         self.ws = ws
         if context is None:
             context = Context()
         self.context = context
-        self.queue = asyncio.Queue()
-        self.methods = dict()
-        self.reading_task = None
+        self.queue_req = asyncio.Queue()
+        self.queue_resp = asyncio.Queue()
+        self.methods = methods
+        self.reading_task = asyncio.Future()
         self.reading = True
-
-    def close(self):
-        self.reading = False
-        self.ws.close()
-        if self.reading_task is not None:
-            self.reading_task.cancel()
-
-    def register(self, **methods):
-        for name, method in methods.items():
-            self[name] = method
-
-    def __setitem__(self, name, function):
-        assert asyncio.iscoroutinefunction(function)
-        self.methods[name] = function
-
-    def __getitem__(self, name):
-        return self.methods[name]
-
-    def __delitem___(self, name):
-        del self.methods[name]
-
-    def __contains__(self, name):
-        return name in self.methods
-
-    def handler(self, name: str):
-        assert isinstance(name, str)
-        def decorator(func):
-            self[name] = func
-            return func
-        return decorator
+        self.tasks = dict()
+        self.task_mainloop = asyncio.ensure_future(self.run())
 
     async def run(self):
-        try:
-            async for req in self:
-                if req.method not in self:
-                    logging.error("Unknown method: %s" % req.method)
-                    await write_error(self.ws, req._id,
-                                      JSONRPCMethodNotFound())
-                    return
-                f = self[req.method]
-                try:
-                    if isinstance(req.params, list):
-                        r = await f(*req.params, __context=self.context)
-                    else: # It's a dict
-                        req.params['__context'] = self.context
-                        r = await f(**req.params)
-                    await self.ws.send_json(dict(jsonrpc="2.0", id=req._id,
-                                                 result=r))
-                except Exception as e:
-                    await write_error(self.ws, req._id,
-                                      JSONRPCServerError(message=str(e)))
-                    return
-        except json.decoder.JSONDecodeError:
-            await write_error(self.ws, req._id, JSONRPCParseError())
-            return
+        self.task_requests = asyncio.ensure_future(self.requests())
+        self.task_responses = asyncio.ensure_future(self.responses())
+        while self.reading:
+            req = await self.queue_req.get()
+            if req.method not in self.methods:
+                logging.error("Unknown method: %s" % req.method)
+                await write_error(self.ws, req._id,
+                                    JSONRPCMethodNotFound())
+                return
+            f = self.methods[req.method]
+            try:
+                if isinstance(req.params, list):
+                    t = asyncio.ensure_future(f(*req.params,
+                                                __context=self.context))
+                else: # It's a dict
+                    req.params['__context'] = self.context
+                    t = asyncio.ensure_future(f(**req.params))
 
-    def __aiter__(self):
-        return self
+                asyncio.ensure_future(self._response(req._id, t))
+                self.tasks[req._id] = t
+                #def clean_task(f):
+                    #del self.tasks[req._id]
+                #t.add_done_callback(clean_task)
+            except Exception as e:
+                await write_error(self.ws, req._id,
+                                    JSONRPCServerError(message=str(e)))
+                return
+
+    async def _response(self, _id, future):
+        r = await future
+        await self.queue_resp.put(JSONRPC20Response(_id=_id, result=r))
+
+    async def join(self):
+        asyncio.gather(self.queue_req.join(), self.queue_resp.join())
+        asyncio.gather(*self.tasks.values())
+
+    def close(self):
+        self.ws.close()
+        self.task_mainloop.cancel()
+        self.reading = False
+        self.reading_task.set_result(None)
+        self.task_requests.cancel()
+        self.task_responses.cancel()
 
     async def requests(self):
         while self.reading:
@@ -117,10 +112,13 @@ class Session:
             for req in list(jsonrpcrequest(reqs)):
                 assert req._id not in self.ids, "Replayed id: %s" % req._id
                 self.ids.add(req._id)
-                await self.queue.put(req)
+                await self.queue_req.put(req)
 
-    def read_all_the_things(self):
-        self.reading_task = asyncio.ensure_future(self.requests())
+    async def responses(self):
+        while self.reading:
+            try:
+                r = await self.queue_resp.get()
+            except RuntimeError:
+                return
+            await self.ws.send_json(r)
 
-    async def __anext__(self) -> JSONRPC20Request:
-        return await self.queue.get()

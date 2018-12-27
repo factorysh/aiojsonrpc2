@@ -1,7 +1,11 @@
 from random import random
+import logging
 from asyncio import Queue, sleep, ensure_future
 
 from aiojsonrpc2.session import Session
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 async def hello(name, __context=None):
@@ -25,18 +29,16 @@ class TransportMockup:
 
 
 async def test_sesison(loop):
+    loop.set_debug(True)
     t = TransportMockup()
-    s = Session(t)
-    s.register(hello=hello)
-    assert s['hello'] == hello
-    assert 'hello' in s
-    assert await s['hello']("World") == "Hello World"
+    s = Session(dict(hello=hello), t)
 
     await t.r.put(dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]))
-    s.read_all_the_things()
-    async for req in s:
-        print("req:", req.params)
-        return
+    r = await t.w.get()
+    print("rr:", r)
+    assert r.result == "Hello Alice"
+    assert r._id == 0
+    print("closing")
+    await s.join()
     s.close()
-
 
