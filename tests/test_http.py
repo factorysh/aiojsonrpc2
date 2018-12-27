@@ -5,12 +5,7 @@ from aiohttp import web
 
 from aiojsonrpc2.client import Client
 from aiojsonrpc2.transport.http import handler_factory, JSONRequest
-
-
-async def hello(name, __context=None):
-    print("ctx", __context)
-    asyncio.sleep(2)
-    return "Hello {}".format(name)
+from tests.utils import hello
 
 
 async def test_jsonrpc(aiohttp_client, loop):
