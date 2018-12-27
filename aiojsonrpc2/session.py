@@ -88,7 +88,7 @@ class Session:
 
     async def _response(self, _id, future):
         r = await future
-        await self.queue_resp.put(JSONRPC20Response(_id=_id, result=r))
+        await self.queue_resp.put(dict(jsonrpc="2.0", id=_id, result=r))
 
     async def join(self):
         asyncio.gather(self.queue_req.join(), self.queue_resp.join())
