@@ -1,14 +1,9 @@
 import asyncio
 from pathlib import Path
-from random import random
 
 from aiojsonrpc2.transport.unix_socket import PascalStringTransport, \
     UnixServer, UnixClient
-
-
-async def hello(name, __context=None):
-    await asyncio.sleep(random())
-    return "Hello %s" % name
+from tests.utils import hello
 
 
 async def test_jsonrpc(loop):
