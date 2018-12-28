@@ -27,6 +27,6 @@ async def test_http_batch(aiohttp_client, loop):
         r1 = b.hello("Alice")
         r2 = b.hello("Bob")
     await asyncio.gather(r1, r2)
-    assert r1.result() == "Hello Alice"
-    assert r2.result() == "Hello Bob"
+    assert await r1 == "Hello Alice"
+    assert await r2 == "Hello Bob"
     await c.close()
