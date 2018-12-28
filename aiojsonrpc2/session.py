@@ -13,7 +13,7 @@ from jsonrpc.exceptions import (
     JSONRPCServerError,
     JSONRPCDispatchException,
 )
-from aiojsonrpc2.transport import AbstractTransport
+from aiojsonrpc2.transport import AbstractTransport, Iterator
 
 
 def jsonrpcrequest(data):
@@ -58,13 +58,14 @@ class Session:
         self.tasks = dict()
         self.batch_responses = []
         self.callbacks = []
-        self.requests = RequestIterator(self.transport)
+        self.requests = Iterator(self.transport)
 
     def add_done_callback(self, cb):
         self.callbacks.append(cb)
 
     async def run(self):
         async for req in self.requests:
+            req = JSONRPC20Request.from_json(req)
             if req._id != None:
                 assert req._id not in self.ids, "Replayed id: %s" % req._id
                 self.ids.add(req._id)
@@ -110,29 +111,4 @@ class Session:
     def close(self):
         self.transport.close()
         self.reading = False
-
-
-class RequestIterator:
-    def __init__(self, transport):
-        self.queue = asyncio.Queue()
-        self.transport = transport
-        self.length = 0
-
-    def __aiter__(self):
-        return self
-
-    def __len__(self):
-        return self.length
-
-    async def __anext__(self):
-        if len(self) == 0:
-            try:
-                reqs = await self.transport.receive_json()
-            except RuntimeError: # transport is closed
-                raise StopAsyncIteration
-            reqs = list(jsonrpcrequest(reqs))
-            self.length = len(reqs)
-            for req in reqs:
-                await self.queue.put(req)
-        return await self.queue.get()
 
