@@ -1,5 +1,5 @@
 import json
-from asyncio import Queue
+from asyncio import Queue, ensure_future
 
 from aiohttp.web import StreamResponse, json_response
 from aiojsonrpc2.session import Session
@@ -31,16 +31,13 @@ class HttpRW:
     async def send_json(self, data):
         await self.queue.put(data)
 
-    async def json(self):
-        return await json_response(await self.queue.get())
-
 
 def handler_factory(**methods):
     async def jsonrpc_handler(request):
         t = HttpRW(request)
-        session = Session(t, request)
-        for name, function in methods.items():
-            session[name] = function
-        await session.run()
-        return t.json()
+        session = Session(methods, t, request, same_batch_size=True)
+        task = ensure_future(session.run())
+        response = await t.queue.get()
+        task.cancel()
+        return json_response(response)
     return jsonrpc_handler
