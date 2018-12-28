@@ -13,8 +13,8 @@ class AbstractTransport:
     async def receive_json(self): # returns jsonrpc2 stanza
         pass
 
-    def close(self):
-        self.writer.close()
+    async def close(self):
+        await self.writer.close()
 
 
 class Iterator:

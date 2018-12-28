@@ -38,8 +38,14 @@ class Client:
             assert _id in self.queries, "Unknown response id"
             self.queries[_id].set_result(resp['result'])
 
-    def close(self):
-        self.transport.close()
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, type, value, traceback):
+        await self.close()
+
+    async def close(self):
+        await self.transport.close()
         self.task_run.cancel()
 
     def id(self):
