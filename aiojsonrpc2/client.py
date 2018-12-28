@@ -1,7 +1,7 @@
 import logging
 import asyncio
 
-from aiojsonrpc2.transport import AbstractTransport
+from aiojsonrpc2.transport import AbstractTransport, Iterator
 
 
 class Method:
@@ -18,9 +18,9 @@ class Method:
         else:
             params = list(args)
         req = dict(jsonrpc="2.0", id=_id, method=self.method, params=params)
-        self.client.responses[_id] = asyncio.Future()
+        self.client.queries[_id] = asyncio.Future()
         await self.client.transport.send_json(req)
-        resp = await self.client.responses[_id]
+        resp = await self.client.queries[_id]
         return resp
 
 
@@ -28,49 +28,19 @@ class Client:
     def __init__(self, transport: AbstractTransport):
         self.transport = transport
         self._id = 0
-        self.responses = dict()
-        self.listen = True
-        self.listen_task = asyncio.ensure_future(self.listen_responses())
-        self.handlers = dict()
+        self.queries = dict()
+        self.responses = Iterator(transport)
+        self.task_run = asyncio.ensure_future(self.run())
 
-    async def listen_responses(self):
-        while self.listen:
-            try:
-                resp = await self.transport.receive_json()
-            except TypeError as e:
-                continue
-            except RuntimeError as e:
-                if e.args[0] == 'WebSocket connection is closed.':
-                    return
-                else:
-                    raise e
-            else:
-                logging.debug(resp)
-                assert resp['jsonrpc'] == "2.0"
-                if 'id' in resp:
-                    self.responses[resp['id']].set_result(resp['result'])
-                else: # it's an event
-                    m = resp['method']
-                    if m in self.handlers:
-                        params = resp['params']
-                        if isinstance(params, list):
-                            await self.handlers[m](*params)
-                        else: # it's a dict
-                            await self.handlers[m](**params)
-                    else:
-                        logging.info("Unknown event: %s" % m)
+    async def run(self):
+        async for resp in self.responses:
+            _id = resp['id']
+            assert _id in self.queries, "Unknown response id"
+            self.queries[_id].set_result(resp['result'])
 
     def close(self):
-        self.listen = False
-        self.listen_task.cancel()
-
-    def handler(self, name: str):
-        assert isinstance(name, str)
-        def decorator(func):
-            assert asyncio.iscoroutinefunction(func)
-            self.handlers[name] = func
-            return func
-        return decorator
+        self.transport.close()
+        self.task_run.cancel()
 
     def id(self):
         self._id += 1
