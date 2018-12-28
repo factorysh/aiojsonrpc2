@@ -44,27 +44,30 @@ async def async_response(r, writer, _id):
 
 class Session:
 
-    def __init__(self, methods: dict, transport: AbstractTransport, context: Context=None):
-        self.ids = set()
+    def __init__(self, methods: dict, transport: AbstractTransport,
+                 context: Context=None, same_batch_size: bool=False):
+        self.methods = methods
         self.transport = transport
         if context is None:
             context = Context()
         self.context = context
-        self.queue_req = asyncio.Queue()
-        self.queue_resp = asyncio.Queue()
-        self.methods = methods
+        self.same_batch_size = same_batch_size
+        self.ids = set()
         self.reading_task = asyncio.Future()
         self.reading = True
         self.tasks = dict()
+        self.batch_responses = []
+        self.callbacks = []
+        self.requests = RequestIterator(self.transport)
+
+    def add_done_callback(self, cb):
+        self.callbacks.append(cb)
 
     async def run(self):
-        self.task_requests = asyncio.ensure_future(self.requests())
-        self.task_responses = asyncio.ensure_future(self.responses())
-        while self.reading:
-            try:
-                req = await self.queue_req.get()
-            except RuntimeError:
-                return
+        async for req in self.requests:
+            if req._id != None:
+                assert req._id not in self.ids, "Replayed id: %s" % req._id
+                self.ids.add(req._id)
             if req.method not in self.methods:
                 logging.error("Unknown method: %s" % req.method)
                 await write_error(self.transport, req._id,
@@ -84,42 +87,52 @@ class Session:
                 #def clean_task(f):
                     #del self.tasks[req._id]
                 #t.add_done_callback(clean_task)
+                for cb in self.callbacks:
+                    t.add_done_callback(cb)
             except Exception as e:
                 await write_error(self.transport, req._id,
                                     JSONRPCServerError(message=str(e)))
                 return
 
     async def _response(self, _id, future):
-        r = await future
-        await self.queue_resp.put(dict(jsonrpc="2.0", id=_id, result=r))
+        r = dict(jsonrpc="2.0", id=_id, result=await future)
+        if self.same_batch_size:
+            self.batch_responses.append(r)
+            if len(self.batch_responses) == len(self.requests):
+                await self.transport.send_json(self.batch_responses)
+                self.batch_responses = []
+        else:
+            await self.transport.send_json(r)
 
     async def join(self):
-        asyncio.gather(self.queue_req.join(), self.queue_resp.join())
         asyncio.gather(*self.tasks.values())
 
     def close(self):
         self.transport.close()
         self.reading = False
-        self.reading_task.set_result(None)
-        self.task_requests.cancel()
-        self.task_responses.cancel()
 
-    async def requests(self):
-        while self.reading:
+
+class RequestIterator:
+    def __init__(self, transport):
+        self.queue = asyncio.Queue()
+        self.transport = transport
+        self.length = 0
+
+    def __aiter__(self):
+        return self
+
+    def __len__(self):
+        return self.length
+
+    async def __anext__(self):
+        if len(self) == 0:
             try:
                 reqs = await self.transport.receive_json()
             except RuntimeError: # transport is closed
-                return
-            for req in list(jsonrpcrequest(reqs)):
-                assert req._id not in self.ids, "Replayed id: %s" % req._id
-                self.ids.add(req._id)
-                await self.queue_req.put(req)
-
-    async def responses(self):
-        while self.reading:
-            try:
-                r = await self.queue_resp.get()
-            except RuntimeError:
-                return
-            await self.transport.send_json(r)
+                raise StopAsyncIteration
+            reqs = list(jsonrpcrequest(reqs))
+            self.length = len(reqs)
+            for req in reqs:
+                await self.queue.put(req)
+        return await self.queue.get()
 

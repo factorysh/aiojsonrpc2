@@ -28,8 +28,8 @@ class TransportMockup:
         pass
 
 
-async def test_sesison(loop):
-    loop.set_debug(True)
+async def test_session(loop):
+    #loop.set_debug(True)
     t = TransportMockup()
     s = Session(dict(hello=hello), t)
     task = ensure_future(s.run())
@@ -37,10 +37,40 @@ async def test_sesison(loop):
     await t.r.put(dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]))
     r = await t.w.get()
     print("rr:", r)
-    assert r.result == "Hello Alice"
-    assert r._id == 0
+    assert r['result'] == "Hello Alice"
+    assert r['id'] == 0
     print("closing")
     await s.join()
     task.cancel()
     s.close()
 
+
+async def test_batch(loop):
+    t = TransportMockup()
+    s = Session(dict(hello=hello), t)
+    task = ensure_future(s.run())
+    await t.r.put([
+        dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]),
+        dict(jsonrpc='2.0', method="hello", id=1, params=["Bob"])
+    ])
+    for a in range(2):
+        r = await t.w.get()
+        print("r#", a, r)
+    await s.join()
+    task.cancel()
+    s.close()
+
+
+async def test_batch_batch(loop):
+    t = TransportMockup()
+    s = Session(dict(hello=hello), t, same_batch_size=True)
+    task = ensure_future(s.run())
+    await t.r.put([
+        dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]),
+        dict(jsonrpc='2.0', method="hello", id=1, params=["Bob"])
+    ])
+    r = await t.w.get()
+    print("r", r)
+    await s.join()
+    task.cancel()
+    s.close()
