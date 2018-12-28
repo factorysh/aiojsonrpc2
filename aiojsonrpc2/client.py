@@ -50,6 +50,9 @@ class Client:
     def stub(self):
         return Stub(self)
 
+    def batch(self):
+        return Batch(self)
+
 
 class Stub:
     def __init__(self, client: Client):
@@ -57,4 +60,51 @@ class Stub:
 
     def __getattr__(self, method) -> Method:
         return Method(self.client, method)
+
+
+class LaterMethod:
+    def __init__(self, batch, method):
+        self.batch = batch
+        self.method = method
+
+    def __call__(self, *args, **kwargs):
+        assert len(args) == 0 or len(kwargs) == 0, \
+            "You can use positional or named args, not both"
+        if len(args) == 0:
+            params = kwargs
+        else:
+            params = list(args)
+        _id = self.batch._client.id()
+        self.batch._batch.append(dict(
+            jsonrpc="2.0",
+            id=_id,
+            params=params,
+            method=self.method
+        ))
+        f = asyncio.Future()
+        self.batch._client.queries[_id] = f
+        self.batch._responses.append(f)
+        return f
+
+
+class Batch:
+    _client = None
+    _batch = []
+    _responses = []
+
+    def __init__(self, client: Client):
+        self._client = client
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return asyncio.ensure_future(self())
+
+    def __getattr__(self, method: str) -> LaterMethod:
+        return LaterMethod(self, method)
+
+    async def __call__(self):
+        await self._client.transport.send_json(self._batch)
+        asyncio.gather(*self._responses)
 
