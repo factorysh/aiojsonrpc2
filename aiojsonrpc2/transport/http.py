@@ -18,6 +18,9 @@ class JSONRequest:
     async def receive_json(self):
         return await self.queue.get()
 
+    async def close(self):
+        await self.client.close()
+
 
 class HttpRW:
     def __init__(self, request):
@@ -31,6 +34,8 @@ class HttpRW:
     async def send_json(self, data):
         await self.queue.put(data)
 
+    async def close(self):
+        pass
 
 def handler_factory(**methods):
     async def jsonrpc_handler(request):
