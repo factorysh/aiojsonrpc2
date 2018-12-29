@@ -16,14 +16,6 @@ from jsonrpc.exceptions import (
 from aiojsonrpc2.transport import AbstractTransport, Iterator
 
 
-def jsonrpcrequest(data):
-    if isinstance(data, list):
-        for d in data:
-            yield JSONRPC20Request.from_data(d)
-    else:
-        yield JSONRPC20Request.from_data(data)
-
-
 async def write_error(ws, _id, error):
     e = error._data
     e['id'] = _id
