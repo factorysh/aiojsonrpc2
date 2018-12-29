@@ -27,5 +27,5 @@ async def test_jsonrpc(loop):
     assert r_a.result() == "Hello Alice"
     assert r_b.result() == "Hello Bob"
 
-    client.close()
+    await client.close()
     server.close()
