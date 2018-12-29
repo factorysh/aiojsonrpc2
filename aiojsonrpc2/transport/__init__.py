@@ -30,7 +30,7 @@ class Iterator:
         return self.length
 
     async def __anext__(self):
-        if len(self) == 0:
+        if self.queue.qsize() == 0:
             try:
                 stanzas = await self.transport.receive_json()
             except RuntimeError: # transport is closed
