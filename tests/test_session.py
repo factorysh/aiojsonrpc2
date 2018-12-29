@@ -3,7 +3,7 @@ import logging
 from asyncio import Queue, sleep, ensure_future
 
 from aiojsonrpc2.session import Session
-from tests.utils import hello
+from tests.utils import hello, let_it_crash
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +36,22 @@ async def test_session(loop):
     assert r['result'] == "Hello Alice"
     assert r['id'] == 0
     print("closing")
+    await s.join()
+    task.cancel()
+    s.close()
+
+
+async def test_session_error(loop):
+    #loop.set_debug(True)
+    t = TransportMockup()
+    s = Session(dict(hello=hello, let_it_crash=let_it_crash), t)
+    task = ensure_future(s.run())
+    await t.r.put(dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]))
+    await t.r.put(dict(jsonrpc='2.0', method="let_it_crash", id=1, params=[]))
+    r1 = await t.w.get()
+    r2 = await t.w.get()
+    print("r1:", r1)
+    print("r2:", r2)
     await s.join()
     task.cancel()
     s.close()
