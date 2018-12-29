@@ -14,7 +14,10 @@ class AbstractTransport:
         pass
 
     async def close(self):
-        await self.writer.close()
+        if asyncio.iscoroutinefunction(self.writer.close):
+            await self.writer.close()
+        else:
+            self.writer.close()
 
 
 class Iterator:
