@@ -45,6 +45,24 @@ async def test_session(loop):
     s.close()
 
 
+async def test_session_multiple(loop):
+    #loop.set_debug(True)
+    t = TransportMockup()
+    s = Session(dict(hello=hello), t)
+    task = ensure_future(s.run())
+
+    await t.r.put(dict(jsonrpc='2.0', method="hello", id=0, params=["Alice"]))
+    await t.r.put(dict(jsonrpc='2.0', method="hello", id=1, params=["Bob"]))
+    r1 = await t.w.get()
+    r2 = await t.w.get()
+    print("r1:", r1)
+    print("r2:", r2)
+    print("closing")
+    await s.join()
+    task.cancel()
+    s.close()
+
+
 async def test_batch(loop):
     t = TransportMockup()
     s = Session(dict(hello=hello), t)
