@@ -41,8 +41,6 @@ class Session:
         self.context = context
         self.same_batch_size = same_batch_size
         self.ids = set()
-        self.reading_task = asyncio.Future()
-        self.reading = True
         self.tasks = dict()
         self.batch_responses = []
         self.callbacks = []
@@ -98,5 +96,4 @@ class Session:
 
     def close(self):
         self.transport.close()
-        self.reading = False
 
