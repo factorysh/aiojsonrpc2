@@ -4,7 +4,7 @@ import logging
 
 from aiohttp import web, WSMsgType
 
-from aiojsonrpc2.session import Session
+from aiojsonrpc2.session import Session, Context
 from aiojsonrpc2.transport import AbstractTransport
 
 
@@ -41,7 +41,7 @@ def handler_factory(**methods):
         await ws.prepare(request)
         assert not ws.closed
         t = WebsocketTransport(ws)
-        session = Session(methods, t, request)
+        session = Session(methods, t, Context(request.headers))
         await session.run()
         return ws
 

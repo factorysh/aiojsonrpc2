@@ -2,7 +2,7 @@ import json
 from asyncio import Queue, ensure_future
 
 from aiohttp.web import StreamResponse, json_response
-from aiojsonrpc2.session import Session
+from aiojsonrpc2.session import Session, Context
 
 
 class JSONRequest:
@@ -40,7 +40,8 @@ class HttpRW:
 def handler_factory(**methods):
     async def jsonrpc_handler(request):
         t = HttpRW(request)
-        session = Session(methods, t, request, same_batch_size=True)
+        session = Session(methods, t, Context(request.headers),
+                          same_batch_size=True)
         task = ensure_future(session.run())
         response = await t.queue.get()
         task.cancel()
