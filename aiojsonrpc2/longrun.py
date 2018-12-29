@@ -7,7 +7,7 @@ Handling slow RPC, with an event flow, or in fire and forget
 
 """
 from typing import Any
-from asyncio import get_running_loop
+from asyncio import get_event_loop
 import uuid
 from enum import Enum
 
@@ -38,7 +38,7 @@ class Run:
 class Longrun:
     def __init__(self, loop=None, maxsize=0, maxage=300):
         if loop is None:
-            self.loop = get_running_loop()
+            self.loop = get_event_loop()
         else:
             self.loop = loop
         self.maxsize = maxsize

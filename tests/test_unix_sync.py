@@ -40,7 +40,7 @@ def test_unix_sync(loop):
     resp = client.stub.hello("World")
     assert resp._id == 0
     assert resp.result == "Hello World"
-    p.kill()
+    p.terminate()
 
 
 def test_unix_batch(loop):
@@ -59,4 +59,4 @@ def test_unix_batch(loop):
     r_a, r_b = resp.responses
     assert r_a.result == "Hello Alice"
     assert r_b.result == "Hello Bob"
-    p.kill()
+    p.terminate()
