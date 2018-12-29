@@ -3,14 +3,10 @@ import logging
 from asyncio import Queue, sleep, ensure_future
 
 from aiojsonrpc2.session import Session
+from tests.utils import hello
 
 
 logging.basicConfig(level=logging.DEBUG)
-
-
-async def hello(name, __context=None):
-    await sleep(random())
-    return "Hello %s" % name
 
 
 class TransportMockup:
