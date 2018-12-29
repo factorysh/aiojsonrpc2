@@ -65,7 +65,7 @@ class Session:
 
     async def run(self):
         async for req in self.requests:
-            req = JSONRPC20Request.from_json(req)
+            req = JSONRPC20Request.from_data(req)
             if req._id != None:
                 assert req._id not in self.ids, "Replayed id: %s" % req._id
                 self.ids.add(req._id)
