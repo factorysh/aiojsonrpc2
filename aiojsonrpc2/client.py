@@ -35,7 +35,7 @@ class Client:
     async def run(self):
         async for resp in self.responses:
             _id = resp['id']
-            assert _id in self.queries, "Unknown response id"
+            assert _id in self.queries, "Unknown response id : %s" % _id
             self.queries[_id].set_result(resp['result'])
 
     async def __aenter__(self):
