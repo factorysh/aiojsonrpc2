@@ -12,11 +12,10 @@ from aiojsonrpc2.sync.transport import SyncPascalStringTransport
 from aiojsonrpc2.sync.client import SyncUnixClient
 
 
-def server(path: str):
+def server(loop, path):
     if os.path.exists(path):
         os.remove(path)
     print("Listening %s" % path)
-    loop = asyncio.get_event_loop()
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(path)
     dispatcher["hello"] = lambda hello: "Hello %s" % hello
@@ -32,9 +31,9 @@ def server(path: str):
         connection.close()
 
 
-def test_unix_sync():
+def test_unix_sync(loop):
     path = "/tmp/sync_server.socket"
-    p = Process(target=server, args=(path, ) )
+    p = Process(target=server, args=(loop, path))
     p.start()
     time.sleep(1)
     client = SyncUnixClient(path)
@@ -44,9 +43,9 @@ def test_unix_sync():
     p.kill()
 
 
-def test_unix_batch():
+def test_unix_batch(loop):
     path = "/tmp/sync_server.socket"
-    p = Process(target=server, args=(path, ) )
+    p = Process(target=server, args=(loop, path))
     p.start()
     time.sleep(1)
     client = SyncUnixClient(path)
