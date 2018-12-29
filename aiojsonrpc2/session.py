@@ -30,10 +30,6 @@ class Context:
         self.headers = headers
 
 
-async def async_response(r, writer, _id):
-    await writer.send_json(dict(jsonrpc="2.0", id=_id, result=await r))
-
-
 class Session:
 
     def __init__(self, methods: dict, transport: AbstractTransport,
