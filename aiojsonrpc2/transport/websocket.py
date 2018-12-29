@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 from aiohttp import web, WSMsgType
 
@@ -13,11 +14,16 @@ class WebsocketTransport(AbstractTransport):
 
     async def receive_json(self):
         while True:
-            print("server ws.closed:", self.ws.closed)
             msg = await self.ws.receive()
-            print('msg:', msg.type, msg)
+            logging.debug('msg: %s %s' % (msg.type, msg))
             if msg.type == WSMsgType.TEXT:
                 return json.loads(msg.data)
+            elif msg.type == WSMsgType.CLOSE:
+                raise StopAsyncIteration
+            elif msg.type == WSMsgType.ERROR:
+                logging.error('ws connection closed with exception %s' %
+                      self.ws.exception())
+                raise StopAsyncIteration
 
     async def send_json(self, msg):
         return await self.ws.send_json(msg)
@@ -31,15 +37,12 @@ def handler_factory(**methods):
     Return a aiohttp.Handler exposing methods
     """
     async def jsonrpc_handler(request):
-        print("server request:", request)
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         assert not ws.closed
-        print("server ws:", ws)
         t = WebsocketTransport(ws)
         session = Session(methods, t, request)
         await session.run()
-        #session_task = asyncio.ensure_future(session.run())
         return ws
 
     return jsonrpc_handler
