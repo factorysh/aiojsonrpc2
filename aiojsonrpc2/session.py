@@ -82,7 +82,11 @@ class Session:
                 return
 
     async def _response(self, _id, future):
-        r = dict(jsonrpc="2.0", id=_id, result=await future)
+        try:
+            r = dict(jsonrpc="2.0", id=_id, result=await future)
+        except Exception as e:
+            r = dict(jsonrpc="2.0", id=_id, error=dict(code=-32603,
+                                                       message=str(e)))
         if self.same_batch_size:
             self.batch_responses.append(r)
             if len(self.batch_responses) == len(self.requests):
