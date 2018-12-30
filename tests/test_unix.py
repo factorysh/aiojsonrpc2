@@ -3,10 +3,12 @@ from pathlib import Path
 
 from aiojsonrpc2.transport.unix_socket import PascalStringTransport, \
     UnixServer, UnixClient
+from aiojsonrpc2.handlers import handlers
 from tests.utils import hello
+import tests.utils
 
 
-async def test_jsonrpc(loop):
+async def test_unix(loop):
     path = Path("/tmp/jsonrpc")
     if path.is_file():
         path.unlink()
@@ -27,5 +29,17 @@ async def test_jsonrpc(loop):
     assert r_a.result() == "Hello Alice"
     assert r_b.result() == "Hello Bob"
 
+    await client.close()
+    server.close()
+
+
+async def test_unix_handlers(loop):
+    path = Path("/tmp/jsonrpc")
+    if path.is_file():
+        path.unlink()
+
+    server = await UnixServer(path, loop=loop, **handlers(tests.utils))
+    client = await UnixClient(path, loop)
+    assert await client.stub.tests.utils.hello("Charly") == "Hello Charly"
     await client.close()
     server.close()
