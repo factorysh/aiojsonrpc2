@@ -11,3 +11,5 @@ async def let_it_crash(__context=None):
     await asyncio.sleep(random())
     1/0
 
+
+__all__ = ['hello', 'let_it_crash']
