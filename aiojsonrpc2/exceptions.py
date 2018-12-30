@@ -7,6 +7,7 @@ from jsonrpc.exceptions import (
     JSONRPCParseError,
     JSONRPCServerError,
     JSONRPCDispatchException,
+    JSONRPCInternalError,
 )
 
 __exceptions = dict()
@@ -16,6 +17,7 @@ for e in [
     JSONRPCMethodNotFound,
     JSONRPCParseError,
     JSONRPCServerError,
+    JSONRPCInternalError,
 ]:
     __exceptions[e.CODE] = e
 
