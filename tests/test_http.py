@@ -10,7 +10,7 @@ from tests.utils import hello, let_it_crash
 
 async def test_http(aiohttp_client, loop):
     app = web.Application()
-    app.router.add_post('/', handler_factory(hello=hello))
+    app.router.add_post('/', handler_factory(hello))
     client = await aiohttp_client(app)
     async with Client(HTTPClient(client, '/')) as c:
         r = await c.stub.hello('world')

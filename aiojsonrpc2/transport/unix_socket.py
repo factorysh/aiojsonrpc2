@@ -3,6 +3,7 @@ import asyncio
 from aiojsonrpc2.session import Session
 from aiojsonrpc2.client import Client
 from aiojsonrpc2.transport.pascal_string import PascalStringTransport
+from aiojsonrpc2.handlers import handlers
 
 
 def on_unix_client(handlers):
@@ -14,10 +15,10 @@ def on_unix_client(handlers):
     return on_client
 
 
-async def UnixServer(path, loop=None, **handlers):
-    return await asyncio.start_unix_server(on_unix_client(handlers),
-                                           path=str(path),
-                                           loop=loop)
+async def UnixServer(path, loop=None, *methods, **kwmethods):
+    return await asyncio.start_unix_server(on_unix_client(
+        handlers(*methods, **kwmethods)),
+        path=str(path), loop=loop)
 
 
 async def UnixClient(path, loop=None) -> Client:
