@@ -4,7 +4,7 @@ import asyncio
 from aiohttp import web
 
 from aiojsonrpc2.client import Client
-from aiojsonrpc2.transport.http import handler_factory, JSONRequest
+from aiojsonrpc2.transport.http import handler_factory, HTTPClient
 from tests.utils import hello, let_it_crash
 
 
@@ -12,7 +12,7 @@ async def test_http(aiohttp_client, loop):
     app = web.Application()
     app.router.add_post('/', handler_factory(hello=hello))
     client = await aiohttp_client(app)
-    async with Client(JSONRequest(client, '/')) as c:
+    async with Client(HTTPClient(client, '/')) as c:
         r = await c.stub.hello('world')
     logging.debug('response %s', r)
     assert r == "Hello world"
@@ -22,7 +22,7 @@ async def test_http_batch(aiohttp_client, loop):
     app = web.Application()
     app.router.add_post('/', handler_factory(hello=hello))
     client = await aiohttp_client(app)
-    c = Client(JSONRequest(client, '/'))
+    c = Client(HTTPClient(client, '/'))
     with c.batch() as b:
         r1 = b.hello("Alice")
         r2 = b.hello("Bob")
@@ -31,12 +31,13 @@ async def test_http_batch(aiohttp_client, loop):
     assert await r2 == "Hello Bob"
     await c.close()
 
+
 async def test_http_exception(aiohttp_client, loop):
     app = web.Application()
     app.router.add_post('/', handler_factory(hello=hello,
                                              let_it_crash=let_it_crash))
     client = await aiohttp_client(app)
-    async with Client(JSONRequest(client, '/')) as c:
+    async with Client(HTTPClient(client, '/')) as c:
         r = await c.stub.hello('world')
         logging.debug('response %s', r)
         assert r == "Hello world"
@@ -46,4 +47,3 @@ async def test_http_exception(aiohttp_client, loop):
             pass # it's OK
         else:
             assert False
-

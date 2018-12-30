@@ -5,7 +5,7 @@ from aiohttp.web import StreamResponse, json_response
 from aiojsonrpc2.session import Session, Context
 
 
-class JSONRequest:
+class HTTPClient:
     def __init__(self, client, uri="/"):
         self.client = client
         self.uri = uri
