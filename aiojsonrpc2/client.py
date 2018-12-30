@@ -2,6 +2,7 @@ import logging
 import asyncio
 
 from aiojsonrpc2.transport import AbstractTransport, Iterator
+from aiojsonrpc2 import exceptions
 
 
 class Method:
@@ -36,7 +37,12 @@ class Client:
         async for resp in self.responses:
             _id = resp['id']
             assert _id in self.queries, "Unknown response id : %s" % _id
-            self.queries[_id].set_result(resp['result'])
+            if 'error' in resp:
+                e = exceptions.from_data(resp)
+                # FIXME e doesn't inherate from Exception
+                self.queries[_id].set_exception(Exception(e))
+            else:
+                self.queries[_id].set_result(resp['result'])
 
     async def __aenter__(self):
         return self
