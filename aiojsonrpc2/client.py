@@ -24,6 +24,9 @@ class Method:
         resp = await self.client.queries[_id]
         return resp
 
+    def __getattr__(self, child):
+        return Method(self.client, "%s.%s" % (self.method, child))
+
 
 class Client:
     def __init__(self, transport: AbstractTransport):
