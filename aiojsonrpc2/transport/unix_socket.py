@@ -16,8 +16,8 @@ def on_unix_client(handlers):
 
 async def UnixServer(path, loop=None, **handlers):
     return await asyncio.start_unix_server(on_unix_client(handlers),
-                                             path=str(path),
-                                             loop=loop)
+                                           path=str(path),
+                                           loop=loop)
 
 
 async def UnixClient(path, loop=None) -> Client:
