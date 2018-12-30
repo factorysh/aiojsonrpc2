@@ -6,7 +6,8 @@ def _get_callable(obj, iter_, prefix):
         if m.startswith('_'):
             continue
         c = getattr(obj, m)
-        if callable(c):
+        #if callable(c):
+        if asyncio.iscoroutinefunction(c):
             yield "%s.%s" %(prefix, m), c
 
 
