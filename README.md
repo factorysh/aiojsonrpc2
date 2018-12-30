@@ -5,6 +5,8 @@ Asyncio [jsonrpc2](http://www.jsonrpc.org/specification) implementation.
 
 Asyncio before python 3.5 is just boring, so this library needs Python 3.5 or 3.6
 
+This library handles unix socket, websocket, and plain old HTTP transports.
+
 Test it
 -------
 
