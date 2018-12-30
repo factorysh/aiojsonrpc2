@@ -1,3 +1,4 @@
+import types
 import asyncio
 
 
@@ -13,15 +14,13 @@ def _get_callable(obj, iter_, prefix):
 
 def handlers(*args, **kwargs):
     for arg in args:
-        # FIXME use instanceof
-        t = str(type(arg))
-        if t == "<class 'function'>":
+        if isinstance(arg, types.FunctionType): # It's a function
             kwargs[arg.__name__] = arg
-        elif t == "<class 'module'>":
-            if '__all__' not in dir(arg):
+        elif isinstance(arg, types.ModuleType):
+            if '__all__' not in dir(arg): # It's a module
                 continue
             kwargs.update(dict(_get_callable(arg, arg.__all__, arg.__name__)))
-        else:
+        else: # It's a class
             kwargs.update(dict(_get_callable(arg, dir(arg),
                                              arg.__class__.__name__)))
 
