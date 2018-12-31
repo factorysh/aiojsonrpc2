@@ -13,6 +13,36 @@ Test it
     make test
 
 
+Curl demo
+---------
+
+A simple server :
+
+```python
+#!/usr/bin/env python3
+from aiohttp import web
+
+from aiojsonrpc2.transport.http import handler_factory
+
+
+async def hello(name: str):
+    return "Hello %s" % name
+
+
+app = web.Application()
+app.add_routes([web.post('/', handler_factory(hello))])
+
+web.run_app(app)
+```
+
+Simple curl query
+
+    $ curl -v \
+        -XPOST \
+        -H "Content-Type: application/json" \
+        --data '{"jsonrpc":"2.0", "method":"hello", "params":["World"]}' \
+        http://localhost:8080/
+
 Async client
 ------------
 
