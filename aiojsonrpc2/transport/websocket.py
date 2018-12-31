@@ -43,7 +43,7 @@ def handler_factory(*methods, **kwmethods):
         assert not ws.closed
         t = WebsocketTransport(ws)
         session = Session(handlers(*methods, **kwmethods),
-                          t, Context(request.headers))
+                          t, Context(request.headers, request.app))
         await session.run()
         return ws
 

@@ -43,7 +43,7 @@ def handler_factory(*methods, **kwmethods):
     async def jsonrpc_handler(request):
         t = HttpRW(request)
         session = Session(handlers(*methods, **kwmethods),
-                          t, Context(request.headers),
+                          t, Context(request.headers, request.app),
                           same_batch_size=True)
         task = ensure_future(session.run())
         response = await t.queue.get()

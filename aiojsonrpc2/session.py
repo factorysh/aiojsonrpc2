@@ -24,10 +24,13 @@ async def write_error(ws, _id, error):
 
 
 class Context:
-    def __init__(self, headers=None):
+    def __init__(self, headers=None, app=None):
         if headers is None:
             headers = dict()
         self.headers = headers
+        if app is None:
+            app = dict()
+        self.app = app
 
 
 class Session:
