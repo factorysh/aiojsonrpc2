@@ -2,6 +2,7 @@ import asyncio
 import logging
 import json
 import functools
+from typing import Optional, Mapping
 
 from jsonrpc.jsonrpc2 import JSONRPC20Request, JSONRPC20Response
 from jsonrpc.exceptions import (
@@ -13,6 +14,9 @@ from jsonrpc.exceptions import (
     JSONRPCServerError,
     JSONRPCDispatchException,
 )
+
+from raven import Client
+
 from aiojsonrpc2.transport import AbstractTransport, Iterator
 
 
@@ -24,7 +28,8 @@ async def write_error(ws, _id, error):
 
 
 class Context:
-    def __init__(self, headers=None, app=None):
+    def __init__(self, headers: Optional[Mapping]=None,
+                 app: Optional[Mapping]=None):
         if headers is None:
             headers = dict()
         self.headers = headers
@@ -35,8 +40,9 @@ class Context:
 
 class Session:
 
-    def __init__(self, methods: dict, transport: AbstractTransport,
-                 context: Context=None, same_batch_size: bool=False):
+    def __init__(self, methods: Mapping, transport: AbstractTransport,
+                 context: Optional[Context]=None, same_batch_size: bool=False,
+                 raven_client: Optional[Client]=None):
         self.methods = methods
         self.transport = transport
         if context is None:
@@ -48,6 +54,7 @@ class Session:
         self.batch_responses = []
         self.callbacks = []
         self.requests = Iterator(self.transport)
+        self.raven_client = raven_client
 
     def add_done_callback(self, cb):
         self.callbacks.append(cb)
@@ -80,16 +87,27 @@ class Session:
                 for cb in self.callbacks:
                     t.add_done_callback(cb)
             except Exception as e:
-                await write_error(self.transport, req._id,
-                                    JSONRPCServerError(message=str(e)))
+                if self.raven_client is None:
+                    raven_id = None
+                else:
+                    raven_id = self.raven_client.captureException()
+                await write_error(self.transport, req._id, JSONRPCServerError(
+                    message=str(e),
+                    data=dict(raven_id=raven_id)))
                 return
 
     async def _response(self, _id, future):
         try:
             r = dict(jsonrpc="2.0", id=_id, result=await future)
         except Exception as e:
-            r = dict(jsonrpc="2.0", id=_id, error=dict(code=-32603,
-                                                       message=str(e)))
+                if self.raven_client is None:
+                    raven_id = None
+                else:
+                    raven_id = self.raven_client.captureException()
+                r = dict(jsonrpc="2.0", id=_id,
+                         error=dict(code=-32603,
+                                    message=str(e),
+                                    data=dict(raven_id=raven_id)))
         if self.same_batch_size:
             self.batch_responses.append(r)
             if len(self.batch_responses) == len(self.requests):
