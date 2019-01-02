@@ -16,8 +16,13 @@ from jsonrpc.exceptions import (
 )
 
 from raven import Client
+from prometheus_client import Histogram
+from prometheus_async.aio import time
 
 from aiojsonrpc2.transport import AbstractTransport, Iterator
+
+
+REQ_TIME = Histogram("req_time_seconds", "time spent in requests")
 
 
 async def write_error(ws, _id, error):
@@ -79,7 +84,8 @@ class Session:
                     req.params['__context'] = self.context
                     t = asyncio.ensure_future(f(**req.params))
 
-                asyncio.ensure_future(self._response(req._id, t))
+                asyncio.ensure_future(self._response(req._id,
+                                                     time(REQ_TIME, future=t)))
                 self.tasks[req._id] = t
                 #def clean_task(f):
                     #del self.tasks[req._id]

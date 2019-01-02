@@ -2,6 +2,7 @@ import logging
 import asyncio
 
 from aiohttp import web
+from prometheus_async import aio
 
 from aiojsonrpc2.client import Client
 from aiojsonrpc2.transport.http import handler_factory, HTTPClient
@@ -11,11 +12,16 @@ from tests.utils import hello, let_it_crash
 async def test_http(aiohttp_client, loop):
     app = web.Application()
     app.router.add_post('/', handler_factory(hello))
+    app.router.add_get("/metrics", aio.web.server_stats)
     client = await aiohttp_client(app)
     async with Client(HTTPClient(client, '/')) as c:
         r = await c.stub.hello('world')
-    logging.debug('response %s', r)
-    assert r == "Hello world"
+        logging.debug('response %s', r)
+        assert r == "Hello world"
+        resp = await client.get("/metrics")
+        assert resp.status == 200
+        text = await resp.text()
+        print(text)
 
 
 async def test_http_batch(aiohttp_client, loop):

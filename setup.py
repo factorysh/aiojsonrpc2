@@ -9,6 +9,8 @@ setup(
         'aiohttp',
         'json-rpc',
         'raven-aiohttp',
+        'prometheus_client',
+        'prometheus_async[aiohttp]',
     ],
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     extras_require={
